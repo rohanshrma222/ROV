@@ -13,8 +13,11 @@ public class ROVController : MonoBehaviour
     [Header("Thrust Settings")]
     [SerializeField] float thrustForce    = 18f;
     [SerializeField] float verticalForce  = 12f;
-    [SerializeField] float yawTorque      = 10f;
-    [SerializeField] float pitchTorque    = 6f;
+
+    [Header("Rotation Rate (deg/sec at full stick deflection)")]
+    [Tooltip("Turn rate is driven directly by how far the stick is deflected, instead of an accumulating torque, so a small nudge always produces a small, proportional turn.")]
+    [SerializeField] float maxYawRate   = 67.5f;
+    [SerializeField] float maxPitchRate = 45f;
 
     [Header("Drag (simulates water resistance)")]
     [SerializeField] float linearDrag  = 4f;
@@ -36,6 +39,10 @@ public class ROVController : MonoBehaviour
     [SerializeField] Joystick moveJoystick;
     [Tooltip("Right joystick: X = yaw, Y = ascend/descend")]
     [SerializeField] Joystick lookJoystick;
+    [Tooltip("Scales the left joystick's output before it's applied — lower feels less twitchy")]
+    [SerializeField, Range(0.1f, 1f)] float moveJoystickSensitivity = 0.5f;
+    [Tooltip("Scales the right joystick's output before it's applied — lower feels less twitchy")]
+    [SerializeField, Range(0.05f, 1f)] float lookJoystickSensitivity = 0.25f;
 
     [Header("Mouse Look")]
     [SerializeField] float mouseSensitivity = 2f;
@@ -71,6 +78,16 @@ public class ROVController : MonoBehaviour
 
     public bool IsDraggingModel { get; set; }
 
+    /// <summary>
+    /// Assigns joystick references at runtime, for ROVs spawned dynamically (e.g. AR placement)
+    /// rather than wired via the Inspector.
+    /// </summary>
+    public void ConfigureJoysticks(Joystick move, Joystick look)
+    {
+        moveJoystick = move;
+        lookJoystick = look;
+    }
+
     void Start()
     {
         // Try to read water level from UnderwaterEnvironment
@@ -98,7 +115,13 @@ public class ROVController : MonoBehaviour
         _rb.AddRelativeForce(localForce, ForceMode.Force);
 
         // ── Rotation (yaw + pitch) ─────────────────────────────────────────
-        _rb.AddRelativeTorque(new Vector3(-_smoothPitch * pitchTorque, _smoothYaw * yawTorque, 0f), ForceMode.Force);
+        // Rate-controlled: stick deflection maps directly to a turn rate, so it stops
+        // turning as soon as the stick is centred instead of spinning up the longer
+        // it's held (which is what a torque that keeps accumulating every frame does).
+        Vector3 localAngularVel = transform.InverseTransformDirection(_rb.angularVelocity);
+        localAngularVel.y = _smoothYaw * maxYawRate * Mathf.Deg2Rad;
+        localAngularVel.x = -_smoothPitch * maxPitchRate * Mathf.Deg2Rad;
+        _rb.angularVelocity = transform.TransformDirection(localAngularVel);
 
         // ── Self-Righting (gentle force to pull roll/pitch back to upright) ─
         if (selfRightingStrength > 0.01f)
@@ -115,9 +138,9 @@ public class ROVController : MonoBehaviour
             float correctivePitch = -pitchAngle * selfRightingStrength * Time.fixedDeltaTime;
 
             // Dampen active roll/pitch velocity to prevent oscillation
-            Vector3 localAngularVel = transform.InverseTransformDirection(_rb.angularVelocity);
-            correctiveRoll -= localAngularVel.z * selfRightingStrength * 0.1f * Time.fixedDeltaTime;
-            correctivePitch -= localAngularVel.x * selfRightingStrength * 0.1f * Time.fixedDeltaTime;
+            Vector3 dampAngularVel = transform.InverseTransformDirection(_rb.angularVelocity);
+            correctiveRoll -= dampAngularVel.z * selfRightingStrength * 0.1f * Time.fixedDeltaTime;
+            correctivePitch -= dampAngularVel.x * selfRightingStrength * 0.1f * Time.fixedDeltaTime;
 
             _rb.AddRelativeTorque(new Vector3(correctivePitch, 0f, correctiveRoll), ForceMode.VelocityChange);
         }
@@ -141,8 +164,8 @@ public class ROVController : MonoBehaviour
         // Joystick (additive — whichever is larger wins)
         if (moveJoystick != null)
         {
-            if (Mathf.Abs(moveJoystick.Horizontal) > 0.1f) x = Mathf.Clamp(x + moveJoystick.Horizontal, -1f, 1f);
-            if (Mathf.Abs(moveJoystick.Vertical)   > 0.1f) z = Mathf.Clamp(z + moveJoystick.Vertical,   -1f, 1f);
+            if (Mathf.Abs(moveJoystick.Horizontal) > 0.1f) x = Mathf.Clamp(x + moveJoystick.Horizontal * moveJoystickSensitivity, -1f, 1f);
+            if (Mathf.Abs(moveJoystick.Vertical)   > 0.1f) z = Mathf.Clamp(z + moveJoystick.Vertical   * moveJoystickSensitivity, -1f, 1f);
         }
 
         return new Vector3(x, 0f, z);
@@ -158,7 +181,7 @@ public class ROVController : MonoBehaviour
 
         // Joystick right stick X
         if (lookJoystick != null && Mathf.Abs(lookJoystick.Horizontal) > 0.1f)
-            yaw += lookJoystick.Horizontal;
+            yaw += lookJoystick.Horizontal * lookJoystickSensitivity;
 
         return Mathf.Clamp(yaw, -1f, 1f);
     }
@@ -174,7 +197,7 @@ public class ROVController : MonoBehaviour
         }
 
         if (lookJoystick != null && Mathf.Abs(lookJoystick.Vertical) > 0.1f)
-            pitch += lookJoystick.Vertical;
+            pitch += lookJoystick.Vertical * lookJoystickSensitivity;
 
         return Mathf.Clamp(pitch, -1f, 1f);
     }

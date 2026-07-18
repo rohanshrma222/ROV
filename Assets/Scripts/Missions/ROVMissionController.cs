@@ -55,6 +55,15 @@ public class ROVMissionController : MonoBehaviour
     public ROVWaypoint CurrentWaypoint =>
         (_currentIndex < waypoints.Count) ? waypoints[_currentIndex] : null;
 
+    /// <summary>
+    /// Replaces the waypoint list at runtime, for waypoints spawned dynamically relative to an
+    /// AR placement point rather than authored at fixed positions in the Inspector.
+    /// </summary>
+    public void ConfigureWaypoints(List<ROVWaypoint> newWaypoints)
+    {
+        waypoints = newWaypoints;
+    }
+
     void Awake()
     {
         if (reportGenerator == null)

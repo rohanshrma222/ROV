@@ -35,6 +35,10 @@ public class UnderwaterEnvironment : MonoBehaviour
     [Tooltip("World height of the water surface (match the WaterSurface object).")]
     public float waterLevel = 8f;
 
+    [Header("AR Mode")]
+    [Tooltip("When false, skips touching clearFlags/backgroundColor/farClipPlane on the camera. Required when the camera renders AR passthrough (e.g. ARCameraBackground), since forcing SolidColor/Skybox clear flags would hide the camera feed.")]
+    public bool affectCameraBackground = true;
+
     [Header("Ambient Light")]
     [Range(0f, 2f)] public float ambientIntensity = 1f;
 
@@ -73,7 +77,7 @@ public class UnderwaterEnvironment : MonoBehaviour
         if (targetCamera == null && Application.isPlaying)
             targetCamera = Camera.main;
 
-        if (targetCamera != null)
+        if (targetCamera != null && affectCameraBackground)
         {
             targetCamera.clearFlags = skyboxMaterial != null
                 ? CameraClearFlags.Skybox

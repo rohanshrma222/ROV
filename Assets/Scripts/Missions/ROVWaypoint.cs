@@ -82,6 +82,18 @@ public class ROVWaypoint : MonoBehaviour
         _triggered = false;
     }
 
+    /// <summary>
+    /// Configures identity/trigger size for waypoints spawned at runtime (e.g. scattered around
+    /// an AR placement point), where these values can't be set via the Inspector.
+    /// </summary>
+    public void Configure(string label, int index, float radius)
+    {
+        waypointLabel = label;
+        waypointIndex = index;
+        triggerRadius = radius;
+        if (_col != null) _col.radius = radius;
+    }
+
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.cyan;

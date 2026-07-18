@@ -20,6 +20,8 @@ public class MissionHUD : MonoBehaviour
 
     [Header("Mission Start")]
     [SerializeField] ROVMissionController missionController;
+    [Tooltip("Start the mission automatically on scene load. Disable when the mission should only begin after something else happens first (e.g. AR placement), and call missionController.StartMission() manually at that point instead.")]
+    [SerializeField] bool autoStartOnAwake = true;
 
     float _onStationTimer;
 
@@ -38,7 +40,7 @@ public class MissionHUD : MonoBehaviour
 
     void Start()
     {
-        if (missionController != null)
+        if (autoStartOnAwake && missionController != null)
             missionController.StartMission();
     }
 

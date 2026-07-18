@@ -5303,8 +5303,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ROVController
   thrustForce: 18
   verticalForce: 12
-  yawTorque: 10
-  pitchTorque: 6
   linearDrag: 4
   angularDrag: 5
   moveJoystick: {fileID: 470062186}
