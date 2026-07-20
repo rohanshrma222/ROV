@@ -48,6 +48,15 @@ public class ROVController : MonoBehaviour
     [SerializeField] float mouseSensitivity = 2f;
     [SerializeField] bool  invertPitch      = false;
 
+    [Header("Movement Bubbles")]
+    [Tooltip("Spawns a trail of bubbles behind the ROV while it's actively thrusting, and stops when it's idle")]
+    [SerializeField] bool  enableBubbles        = true;
+    [SerializeField] float bubbleEmissionRate   = 18f;
+    [Tooltip("Combined move+ascend input magnitude above which bubbles start emitting")]
+    [SerializeField] float bubbleMoveThreshold  = 0.05f;
+
+    ParticleSystem _bubbles;
+
     // ── Public sensor readouts ──────────────────────────────────────────────
     /// Depth below water surface in metres (used by ROVHUD / World.cs).
     public float Depth    => Mathf.Max(0f, WaterSurfaceY - transform.position.y);
@@ -74,6 +83,8 @@ public class ROVController : MonoBehaviour
         {
             gameObject.AddComponent<ROVModelRotator>();
         }
+
+        if (enableBubbles) _bubbles = BuildBubbleParticles();
     }
 
     public bool IsDraggingModel { get; set; }
@@ -109,6 +120,14 @@ public class ROVController : MonoBehaviour
         _smoothYaw    = Mathf.Lerp(_smoothYaw, targetYaw, Time.fixedDeltaTime * inputSmoothing);
         _smoothPitch  = Mathf.Lerp(_smoothPitch, targetPitch, Time.fixedDeltaTime * inputSmoothing);
         _smoothAscend = Mathf.Lerp(_smoothAscend, targetAscend, Time.fixedDeltaTime * inputSmoothing);
+
+        // ── Movement bubbles: only emit while actively thrusting ───────────
+        if (_bubbles != null)
+        {
+            float moveAmount = _smoothMove.magnitude + Mathf.Abs(_smoothAscend);
+            var emission = _bubbles.emission;
+            emission.rateOverTime = moveAmount > bubbleMoveThreshold ? bubbleEmissionRate : 0f;
+        }
 
         // ── Thrust (forward/back + strafe + vertical) ──────────────────────
         Vector3 localForce = new Vector3(_smoothMove.x * thrustForce, _smoothAscend * verticalForce, _smoothMove.z * thrustForce);
@@ -200,6 +219,94 @@ public class ROVController : MonoBehaviour
             pitch += lookJoystick.Vertical * lookJoystickSensitivity;
 
         return Mathf.Clamp(pitch, -1f, 1f);
+    }
+
+    // ── Movement bubbles ────────────────────────────────────────────────────
+
+    ParticleSystem BuildBubbleParticles()
+    {
+        var go = new GameObject("MovementBubbles");
+        go.transform.SetParent(transform, false);
+        go.transform.localPosition = new Vector3(0f, -0.03f, -0.12f); // trails just behind/below the ROV
+
+        var ps = go.AddComponent<ParticleSystem>();
+
+        var main = ps.main;
+        main.loop = true;
+        main.playOnAwake = true;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        main.startLifetime = 1.5f;
+        main.startSpeed = 0.1f;
+        main.startSize = new ParticleSystem.MinMaxCurve(0.015f, 0.035f);
+        main.startColor = new Color(0.85f, 0.95f, 1f, 0.6f);
+        main.maxParticles = 200;
+
+        var emission = ps.emission;
+        emission.rateOverTime = 0f; // driven live from FixedUpdate based on movement
+
+        var shape = ps.shape;
+        shape.shapeType = ParticleSystemShapeType.Sphere;
+        shape.radius = 0.05f;
+
+        var vel = ps.velocityOverLifetime;
+        vel.enabled = true;
+        vel.space = ParticleSystemSimulationSpace.World;
+        vel.y = new ParticleSystem.MinMaxCurve(0.12f, 0.3f); // bubbles drift upward
+
+        var noise = ps.noise;
+        noise.enabled = true;
+        noise.strength = 0.04f;
+        noise.frequency = 0.4f;
+
+        var colorOverLifetime = ps.colorOverLifetime;
+        colorOverLifetime.enabled = true;
+        var grad = new Gradient();
+        grad.SetKeys(
+            new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+            new[] { new GradientAlphaKey(0.6f, 0f), new GradientAlphaKey(0f, 1f) });
+        colorOverLifetime.color = grad;
+
+        var sizeOverLifetime = ps.sizeOverLifetime;
+        sizeOverLifetime.enabled = true;
+        sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1f, 1f, 1.4f));
+
+        var renderer = go.GetComponent<ParticleSystemRenderer>();
+        renderer.material = BuildBubbleMaterial();
+        renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        renderer.receiveShadows = false;
+
+        return ps;
+    }
+
+    static Material _bubbleMaterialCache;
+
+    static Material BuildBubbleMaterial()
+    {
+        if (_bubbleMaterialCache != null) return _bubbleMaterialCache;
+
+        var mat = new Material(Shader.Find("Sprites/Default"));
+        mat.mainTexture = BuildBubbleTexture();
+        _bubbleMaterialCache = mat;
+        return mat;
+    }
+
+    static Texture2D BuildBubbleTexture()
+    {
+        const int size = 32;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        Vector2 center = new Vector2((size - 1) * 0.5f, (size - 1) * 0.5f);
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float d = Vector2.Distance(new Vector2(x, y), center) / (size * 0.5f);
+                float alpha = Mathf.Clamp01(1f - d);
+                alpha *= alpha;
+                tex.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+            }
+        }
+        tex.Apply();
+        return tex;
     }
 
     float GetVerticalInput()
