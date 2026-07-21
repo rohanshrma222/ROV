@@ -168,8 +168,8 @@ public class MobileUIAdapter : MonoBehaviour
 
         safeRect.anchorMin = anchorMin;
         safeRect.anchorMax = anchorMax;
-        safeRect.offsetMin = Vector2.zero;
-        safeRect.offsetMax = Vector2.zero;
+        safeRect.offsetMin = new Vector2(-40.00019f, -36f);
+        safeRect.offsetMax = new Vector2(43.00001f, 193f);
 
         // Move all UI panel children into the safe area container, except full-screen backgrounds/water planes
         var children = new System.Collections.Generic.List<Transform>();
