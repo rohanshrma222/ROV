@@ -237,7 +237,7 @@ public class ROVController : MonoBehaviour
         main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.startLifetime = 1.5f;
         main.startSpeed = 0.1f;
-        main.startSize = new ParticleSystem.MinMaxCurve(0.015f, 0.035f);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.025f, 0.055f);
         main.startColor = new Color(0.85f, 0.95f, 1f, 0.6f);
         main.maxParticles = 200;
 
@@ -280,33 +280,34 @@ public class ROVController : MonoBehaviour
 
     static Material _bubbleMaterialCache;
 
+    // Reuses the bubble look from the FaceAR project (Assets/Textures/FaceAR_BubbleTexture.png).
     static Material BuildBubbleMaterial()
     {
         if (_bubbleMaterialCache != null) return _bubbleMaterialCache;
 
-        var mat = new Material(Shader.Find("Sprites/Default"));
-        mat.mainTexture = BuildBubbleTexture();
+        var shader = Shader.Find("Universal Render Pipeline/Particles/Unlit")
+                  ?? Shader.Find("Particles/Standard Unlit")
+                  ?? Shader.Find("Sprites/Default");
+
+        var mat = new Material(shader);
+        var tex = Resources.Load<Texture2D>("Textures/FaceAR_BubbleTexture");
+
+        if (mat.HasProperty("_BaseMap"))
+            mat.SetTexture("_BaseMap", tex);
+        else
+            mat.mainTexture = tex;
+
+        if (mat.HasProperty("_Surface"))
+            mat.SetFloat("_Surface", 1f); // Transparent mode
+
+        mat.SetOverrideTag("RenderType", "Transparent");
+        mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+        mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+        mat.SetInt("_ZWrite", 0);
+        mat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+
         _bubbleMaterialCache = mat;
         return mat;
-    }
-
-    static Texture2D BuildBubbleTexture()
-    {
-        const int size = 32;
-        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
-        Vector2 center = new Vector2((size - 1) * 0.5f, (size - 1) * 0.5f);
-        for (int y = 0; y < size; y++)
-        {
-            for (int x = 0; x < size; x++)
-            {
-                float d = Vector2.Distance(new Vector2(x, y), center) / (size * 0.5f);
-                float alpha = Mathf.Clamp01(1f - d);
-                alpha *= alpha;
-                tex.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
-            }
-        }
-        tex.Apply();
-        return tex;
     }
 
     float GetVerticalInput()
