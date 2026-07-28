@@ -13,6 +13,8 @@ public class ROVMissionController : MonoBehaviour
     [Header("Mission Setup")]
     [SerializeField] ROVMissionUIData missionData;
     [SerializeField] List<ROVWaypoint> waypoints = new();
+    [Tooltip("If true, waypoints must be reached in list order and out-of-order triggers are ignored. Disable for layouts (e.g. AR, where waypoints are scattered with no visible ordering cue) where the player can't tell which one is \"next\".")]
+    [SerializeField] bool requireSequentialOrder = true;
 
     [Header("Scan Settings")]
     [Tooltip("Creature scan radius at each waypoint")]
@@ -56,12 +58,26 @@ public class ROVMissionController : MonoBehaviour
         (_currentIndex < waypoints.Count) ? waypoints[_currentIndex] : null;
 
     /// <summary>
+    /// The waypoint object actually reached most recently. Unlike CurrentWaypoint (which is
+    /// just "the next un-visited slot in original list order"), this is correct even when
+    /// requireSequentialOrder is false and waypoints are reached out of order — e.g. in AR,
+    /// where CurrentWaypoint would otherwise point at the wrong physical location.
+    /// </summary>
+    public ROVWaypoint LastReachedWaypoint { get; private set; }
+
+    /// <summary>
     /// Replaces the waypoint list at runtime, for waypoints spawned dynamically relative to an
     /// AR placement point rather than authored at fixed positions in the Inspector.
     /// </summary>
     public void ConfigureWaypoints(List<ROVWaypoint> newWaypoints)
     {
         waypoints = newWaypoints;
+    }
+
+    /// <summary>Call before StartMission() to allow waypoints to be reached in any order.</summary>
+    public void SetRequireSequentialOrder(bool required)
+    {
+        requireSequentialOrder = required;
     }
 
     void Awake()
@@ -109,7 +125,7 @@ public class ROVMissionController : MonoBehaviour
         // Reset and subscribe to waypoints
         foreach (var wp in waypoints)
         {
-            if (wp != null)
+            if (wp != null && wp.OnROVEntered != null)
             {
                 wp.Reset();
                 wp.OnROVEntered.RemoveListener(HandleWaypointReached);
@@ -140,8 +156,13 @@ public class ROVMissionController : MonoBehaviour
     void HandleWaypointReached(ROVWaypoint wp)
     {
         if (!_missionActive) return;
-        if (wp.waypointIndex != _currentIndex && waypoints.IndexOf(wp) != _currentIndex)
-            return;   // out-of-order trigger, ignore
+        if (requireSequentialOrder && wp.waypointIndex != _currentIndex && waypoints.IndexOf(wp) != _currentIndex)
+        {
+            Debug.LogWarning($"[ROVMissionController] '{wp.waypointLabel}' ignored: out of order (expected index {_currentIndex}).");
+            return;
+        }
+
+        LastReachedWaypoint = wp;
 
         var dp = CaptureDataPoint(wp.waypointLabel);
         _dataLog.Add(dp);

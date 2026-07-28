@@ -89,6 +89,20 @@ public class ROVController : MonoBehaviour
 
     public bool IsDraggingModel { get; set; }
 
+    /// <summary>Set false to freeze the ROV in place (e.g. while a waypoint trivia card is open).</summary>
+    public bool InputEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Zeroes current velocity so the ROV actually stops instead of coasting on residual
+    /// momentum after InputEnabled is set false — otherwise a moving ROV can drift straight
+    /// through several nearby waypoint triggers before the player ever sees the first card.
+    /// </summary>
+    public void StopMotion()
+    {
+        _rb.linearVelocity = Vector3.zero;
+        _rb.angularVelocity = Vector3.zero;
+    }
+
     /// <summary>
     /// Assigns joystick references at runtime, for ROVs spawned dynamically (e.g. AR placement)
     /// rather than wired via the Inspector.
@@ -108,7 +122,7 @@ public class ROVController : MonoBehaviour
 
     void FixedUpdate()
     {
-        if (IsDraggingModel) return;
+        if (IsDraggingModel || !InputEnabled) return;
 
         Vector3 targetMove   = GetMoveInput();
         float   targetYaw    = GetYawInput();
@@ -251,6 +265,10 @@ public class ROVController : MonoBehaviour
         var vel = ps.velocityOverLifetime;
         vel.enabled = true;
         vel.space = ParticleSystemSimulationSpace.World;
+        // x/z must be set in the same MinMaxCurve mode as y (TwoConstants), or Unity logs
+        // "Particle Velocity curves must all be in the same mode" every frame.
+        vel.x = new ParticleSystem.MinMaxCurve(0f, 0f);
+        vel.z = new ParticleSystem.MinMaxCurve(0f, 0f);
         vel.y = new ParticleSystem.MinMaxCurve(0.12f, 0.3f); // bubbles drift upward
 
         var noise = ps.noise;
@@ -320,11 +338,10 @@ public class ROVController : MonoBehaviour
             if (Keyboard.current.qKey.isPressed) v -= 1f;
         }
 
-        // Right joystick vertical for ascend/descend as fallback when no look joystick assigned separately
-        if (moveJoystick != null && lookJoystick == null)
-        {
-            // use nothing — keyboard only handles vertical in single-joystick setup
-        }
+        // Right joystick vertical for ascend/descend — the only vertical input available on
+        // touch devices, since there's no keyboard to provide E/Q there.
+        if (lookJoystick != null && Mathf.Abs(lookJoystick.Vertical) > 0.1f)
+            v += lookJoystick.Vertical * lookJoystickSensitivity;
 
         return Mathf.Clamp(v, -1f, 1f);
     }

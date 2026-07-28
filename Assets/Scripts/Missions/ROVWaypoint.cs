@@ -25,7 +25,11 @@ public class ROVWaypoint : MonoBehaviour
     [SerializeField] float pulseMax   = 1.8f;
 
     [Header("Events")]
-    public UnityEvent<ROVWaypoint> OnROVEntered;
+    // Explicit initializer matters here: waypoints spawned via AddComponent at runtime
+    // (ROVARPlacementController) have no serialized backing data to auto-populate this from,
+    // so without it the field comes through null and ROVMissionController.StartMission()
+    // throws a NullReferenceException subscribing to it.
+    public UnityEvent<ROVWaypoint> OnROVEntered = new UnityEvent<ROVWaypoint>();
 
     SphereCollider _col;
     bool           _triggered;

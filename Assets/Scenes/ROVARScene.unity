@@ -292,13 +292,15 @@ MonoBehaviour:
   lookJoystick: {fileID: 800000032}
   missionController: {fileID: 910000069}
   waypointOffsets:
-  - {x: 0.3, y: 0.2, z: 0.5}
-  - {x: -0.4, y: 0.25, z: 0.7}
-  - {x: 0.15, y: 0.3, z: 0.9}
+  - {x: 1.0, y: 0.2, z: 0.8}
+  - {x: -1.2, y: 0.25, z: 1.0}
+  - {x: 0.2, y: 0.3, z: 1.6}
+  - {x: -0.6, y: 0.35, z: 2.1}
   waypointLabels:
   - Station Alpha
   - Station Bravo
   - Station Charlie
+  - Station Delta
   waypointTriggerRadius: 0.15
   waypointMarkerSize: 0.08
 --- !u!114 &200000006

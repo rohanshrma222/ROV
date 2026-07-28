@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d2f8e5acf7f55d76aea787ff6b71c94, type: 3}
+  m_Name: GiantIsopod
+  m_EditorClassIdentifier: 
+  creatureName: Giant Isopod
+  portrait: {fileID: 0}
+  rarity: 0
+  depthRange: 170 - 2140 m
+  habitat: Cold, deep continental shelf and slope floors
+  diet: Scavenges dead fish, squid, and whale falls on the seabed
+  conservationStatus: Least Concern
+  interestingFact: A relative of the common woodlouse, it can survive years between
+    meals by slowing its metabolism almost to a stop.
+  modelPrefab: {fileID: -6689036041284674117, guid: 2177ee0b3fdc3df42b834bca6ddcfc92, type: 3}
+  modelOffset: {x: 0, y: 0, z: 0}
+  modelScale: 0.001

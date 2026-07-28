@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d2f8e5acf7f55d76aea787ff6b71c94, type: 3}
+  m_Name: VampireSquid
+  m_EditorClassIdentifier:
+  creatureName: Vampire Squid
+  portrait: {fileID: 0}
+  rarity: 0
+  depthRange: 600 - 900 m
+  habitat: Oxygen minimum zone of the deep ocean
+  diet: Marine snow - drifting organic debris, not blood or prey despite its name
+  conservationStatus: Least Concern
+  interestingFact: When threatened it can turn itself inside out, cloaking its body
+    in a cape-like webbing lined with spines.

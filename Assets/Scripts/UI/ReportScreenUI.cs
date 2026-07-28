@@ -72,7 +72,9 @@ public class ReportScreenUI : MonoBehaviour
         if (dataPointSummaryLabel != null && missionController != null)
             dataPointSummaryLabel.text =
                 $"{missionController.ReachedCount} waypoints surveyed  ·  " +
-                $"{missionController.ElapsedTime:F0}s elapsed";
+                $"{missionController.ElapsedTime:F0}s elapsed  ·  " +
+                $"{SpeciesScanUI.SpeciesDiscovered} species discovered  ·  " +
+                $"{SpeciesScanUI.XPEarned} XP earned";
 
         Debug.Log("[ReportScreenUI] Report displayed.");
     }

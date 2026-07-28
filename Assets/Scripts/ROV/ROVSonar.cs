@@ -26,12 +26,20 @@ public class ROVSonar : MonoBehaviour
     [SerializeField] Color sharkColor   = new Color(1f, 0.3f, 0.3f, 1f);
     [SerializeField] Color defaultColor = new Color(0.6f, 0.9f, 1f, 1f);
 
+    [Header("Waypoint Blip")]
+    [Tooltip("Distinct, non-fading marker showing the direction/distance to the mission's current waypoint, so the player navigates via the sonar instead of on-screen next-waypoint text.")]
+    [SerializeField] Color waypointColor = new Color(1f, 0.65f, 0.15f, 1f);
+    [SerializeField] Vector2 waypointBlipSize = new Vector2(14f, 14f);
+
     [Header("Creature Count Label")]
     [SerializeField] TMP_Text creatureCountLabel;
 
     float _sweepAngle;
     readonly List<BlipEntry> _blips = new();
     readonly Queue<GameObject> _pool = new();
+
+    ROVMissionController _missionController;
+    GameObject            _waypointBlip;
 
     struct BlipEntry
     {
@@ -45,6 +53,7 @@ public class ROVSonar : MonoBehaviour
     {
         UpdateSweep();
         UpdateBlips();
+        UpdateWaypointBlip();
     }
 
     void UpdateSweep()
@@ -133,6 +142,47 @@ public class ROVSonar : MonoBehaviour
                 }
             }
         }
+    }
+
+    // ── Waypoint blip ───────────────────────────────────────────────────────
+
+    void UpdateWaypointBlip()
+    {
+        if (_missionController == null)
+            _missionController = FindFirstObjectByType<ROVMissionController>();
+
+        var wp = _missionController != null ? _missionController.CurrentWaypoint : null;
+        var cam = Camera.main;
+        if (wp == null || cam == null)
+        {
+            if (_waypointBlip != null) _waypointBlip.SetActive(false);
+            return;
+        }
+
+        Vector3 toWaypoint = wp.transform.position - cam.transform.position;
+        float distance = toWaypoint.magnitude;
+
+        Vector3 flatForward = Vector3.ProjectOnPlane(cam.transform.forward, Vector3.up).normalized;
+        Vector3 flatTarget  = Vector3.ProjectOnPlane(toWaypoint, Vector3.up).normalized;
+        float angle = Vector3.SignedAngle(flatForward, flatTarget, Vector3.up);
+
+        float rad     = angle * Mathf.Deg2Rad;
+        float normDst = Mathf.Clamp01(distance / scanRadius);
+        float r       = normDst * radarUIRadius;
+
+        if (_waypointBlip == null) _waypointBlip = CreateWaypointBlip();
+        _waypointBlip.SetActive(true);
+        _waypointBlip.GetComponent<RectTransform>().anchoredPosition =
+            new Vector2(Mathf.Sin(rad) * r, Mathf.Cos(rad) * r);
+    }
+
+    GameObject CreateWaypointBlip()
+    {
+        var g = new GameObject("WaypointBlip", typeof(RectTransform), typeof(Image));
+        g.transform.SetParent(radarPanel, false);
+        g.GetComponent<RectTransform>().sizeDelta = waypointBlipSize;
+        g.GetComponent<Image>().color = waypointColor;
+        return g;
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────

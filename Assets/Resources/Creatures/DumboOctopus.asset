@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d2f8e5acf7f55d76aea787ff6b71c94, type: 3}
+  m_Name: DumboOctopus
+  m_EditorClassIdentifier: 
+  creatureName: Dumbo Octopus
+  portrait: {fileID: 0}
+  rarity: 1
+  depthRange: 3000 - 4000 m
+  habitat: Deep sea, near the ocean floor
+  diet: Small crustaceans, worms, and other benthic invertebrates
+  conservationStatus: Least Concern
+  interestingFact: It swims using two ear-like fins that resemble the ears of Disney's
+    Dumbo, and is the deepest-living octopus known.
+  modelPrefab: {fileID: -6689036041284674117, guid: 1ef2be1352356d441af8120213142053, type: 3}
+  modelOffset: {x: 0, y: 0, z: 0}
+  modelScale: 1

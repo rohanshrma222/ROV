@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3d2f8e5acf7f55d76aea787ff6b71c94, type: 3}
+  m_Name: GiantSeaSpider
+  m_EditorClassIdentifier: 
+  creatureName: Giant Sea Spider
+  portrait: {fileID: 0}
+  rarity: 0
+  depthRange: 100 - 600 m
+  habitat: Cold continental shelf and polar seafloors
+  diet: Sucks fluids from soft-bodied invertebrates like anemones and soft corals
+    through a straw-like proboscis
+  conservationStatus: Not Evaluated
+  interestingFact: It has no room for organs in its thin legs, so its gut and gonads
+    extend down into them instead.
+  modelPrefab: {fileID: 8128668236925612103, guid: 0e04e9c74c9573c49b3417841b18f657, type: 3}
+  modelOffset: {x: 0, y: 0, z: 0}
+  modelScale: 1

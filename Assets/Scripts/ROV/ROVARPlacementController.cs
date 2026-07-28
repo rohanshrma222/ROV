@@ -50,11 +50,12 @@ public class ROVARPlacementController : MonoBehaviour
     [SerializeField]
     Vector3[] waypointOffsets =
     {
-        new Vector3(0.3f, 0.2f, 0.5f),
-        new Vector3(-0.4f, 0.25f, 0.7f),
-        new Vector3(0.15f, 0.3f, 0.9f),
+        new Vector3(1.0f, 0.2f, 0.8f),
+        new Vector3(-1.2f, 0.25f, 1.0f),
+        new Vector3(0.2f, 0.3f, 1.6f),
+        new Vector3(-0.6f, 0.35f, 2.1f),
     };
-    [SerializeField] string[] waypointLabels = { "Station Alpha", "Station Bravo", "Station Charlie" };
+    [SerializeField] string[] waypointLabels = { "Station Alpha", "Station Bravo", "Station Charlie", "Station Delta" };
     [SerializeField] float waypointTriggerRadius = 0.15f;
     [SerializeField] float waypointMarkerSize = 0.08f;
 
@@ -234,15 +235,30 @@ public class ROVARPlacementController : MonoBehaviour
         {
             Vector3 worldPos = origin + facing * waypointOffsets[i];
 
-            var marker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            marker.name = $"Waypoint_{i}";
+            // Trigger collider lives on this unscaled root; the visual mesh is a scaled
+            // child instead, so shrinking the marker for display doesn't also shrink the
+            // trigger radius (SphereCollider.radius is local space and gets multiplied by
+            // whatever localScale the GameObject carrying it has).
+            var marker = new GameObject($"Waypoint_{i}");
             marker.transform.SetPositionAndRotation(worldPos, Quaternion.identity);
-            marker.transform.localScale = Vector3.one * waypointMarkerSize;
             if (anchorParent != null) marker.transform.SetParent(anchorParent, true);
 
-            var markerRenderer = marker.GetComponent<MeshRenderer>();
+            var visual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            visual.name = "Visual";
+            visual.transform.SetParent(marker.transform, false);
+            visual.transform.localScale = Vector3.one * waypointMarkerSize;
+            Destroy(visual.GetComponent<SphereCollider>());
+
+            var markerRenderer = visual.GetComponent<MeshRenderer>();
             if (markerRenderer != null)
+            {
+                // CreatePrimitive's default material uses the built-in "Standard" shader, which
+                // renders as hot pink/magenta under this project's URP pipeline. Use a pipeline
+                // shader instead so the marker actually shows the intended color.
+                var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+                markerRenderer.material = new Material(shader);
                 markerRenderer.material.color = Color.cyan;
+            }
 
             string label = i < waypointLabels.Length ? waypointLabels[i] : $"Waypoint {i + 1}";
             var wp = marker.AddComponent<ROVWaypoint>();
@@ -251,6 +267,10 @@ public class ROVARPlacementController : MonoBehaviour
         }
 
         missionController.ConfigureWaypoints(waypoints);
+        // AR waypoints are scattered around the player with no visible label showing which
+        // one is "next", so requiring them in a fixed order means most real approaches get
+        // silently ignored. Any order is fine here.
+        missionController.SetRequireSequentialOrder(false);
         missionController.StartMission();
     }
 
