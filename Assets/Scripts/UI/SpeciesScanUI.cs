@@ -7,7 +7,7 @@ using UnityEngine.UI;
 /// Shows a "research site found" -> scan progress -> species info card when the ROV
 /// reaches a waypoint (ROVMissionController.OnWaypointReached), pausing ROV input
 /// until the player scans and taps Continue. Builds its own Canvas at runtime (no
-/// scene wiring needed, mirrors OnScreenDebugConsole's self-bootstrap pattern) and
+/// scene wiring needed, building its own Canvas the moment a mission controller exists) and
 /// loads its creature-per-waypoint data from Resources/Creatures.
 /// Replaces the old WaypointTriviaUI quiz interaction.
 /// </summary>
@@ -93,7 +93,14 @@ public class SpeciesScanUI : MonoBehaviour
     {
         Debug.Log($"[SpeciesScanUI] HandleWaypointReached({reached}/{total})");
         if (_bank == null || _bank.creatures == null) return;
-        int index = reached - 1;
+
+        // Keyed by the waypoint's own fixed identity (waypointIndex), not arrival order —
+        // so which creature you get depends on WHERE you are, not what order you visited
+        // waypoints in. Waypoints can be reached in any order (requireSequentialOrder is
+        // off for AR), so "reached - 1" would give a different creature at the same
+        // physical spot depending on visit order.
+        var wp = _missionController.LastReachedWaypoint;
+        int index = wp != null ? wp.waypointIndex : reached - 1;
         if (index < 0 || index >= _bank.creatures.Length)
         {
             Debug.LogWarning($"[SpeciesScanUI] Index {index} out of range (bank has {_bank.creatures.Length}).");
@@ -111,7 +118,6 @@ public class SpeciesScanUI : MonoBehaviour
             _rov.StopMotion();
         }
 
-        SpawnModel();
         ShowFound();
     }
 
@@ -125,10 +131,57 @@ public class SpeciesScanUI : MonoBehaviour
             return;
         }
 
+        // The creature is the reveal — hide the waypoint's placeholder marker the moment
+        // the real model appears.
+        var markerVisual = waypoint.transform.Find("Visual");
+        if (markerVisual != null) markerVisual.gameObject.SetActive(false);
+
         _spawnedModel = Instantiate(_currentCreature.modelPrefab, waypoint.transform);
         _spawnedModel.transform.localPosition = _currentCreature.modelOffset;
         _spawnedModel.transform.localScale = Vector3.one * _currentCreature.modelScale;
+
+        // Rigged models (e.g. Giant Sea Spider) use SkinnedMeshRenderers, whose bounds are
+        // computed from the imported bind pose and can end up wrong/stale enough that Unity's
+        // frustum culling decides they're off-screen and never draws them at all — a model
+        // that's fully invisible for reasons that have nothing to do with position or scale.
+        // Forcing bounds to recompute every frame sidesteps that.
+        foreach (var skinned in _spawnedModel.GetComponentsInChildren<SkinnedMeshRenderer>())
+            skinned.updateWhenOffscreen = true;
+
+        if (AddInspectionCollider(_spawnedModel))
+            _spawnedModel.AddComponent<CreatureModelRotator>();
         Debug.Log($"[SpeciesScanUI] Spawned '{_spawnedModel.name}' at waypoint '{waypoint.waypointLabel}', world pos {_spawnedModel.transform.position}, scale {_spawnedModel.transform.localScale}.");
+    }
+
+    /// <summary>
+    /// Downloaded models don't come with a collider, so CreatureModelRotator has nothing to
+    /// hit-test taps against. Builds a BoxCollider from the model's actual combined mesh
+    /// bounds (in the model's own local space) so tapping anywhere on its visible surface works.
+    /// Returns false (and skips adding the rotator) if the model has no renderers at all,
+    /// since CreatureModelRotator requires a Collider to already be present.
+    /// </summary>
+    static bool AddInspectionCollider(GameObject model)
+    {
+        var renderers = model.GetComponentsInChildren<Renderer>();
+        if (renderers.Length == 0)
+        {
+            Debug.LogWarning($"[SpeciesScanUI] '{model.name}' has no Renderer components — can't build an inspection collider (and likely isn't rendering anything either).");
+            return false;
+        }
+
+        Bounds combined = renderers[0].bounds;
+        for (int i = 1; i < renderers.Length; i++)
+            combined.Encapsulate(renderers[i].bounds);
+
+        Vector3 lossyScale = model.transform.lossyScale;
+        var box = model.AddComponent<BoxCollider>();
+        box.center = model.transform.InverseTransformPoint(combined.center);
+        box.size = new Vector3(
+            combined.size.x / Mathf.Max(lossyScale.x, 0.0001f),
+            combined.size.y / Mathf.Max(lossyScale.y, 0.0001f),
+            combined.size.z / Mathf.Max(lossyScale.z, 0.0001f));
+        Debug.Log($"[SpeciesScanUI] '{model.name}' combined world bounds: center={combined.center}, size={combined.size}.");
+        return true;
     }
 
     void ShowFound()
@@ -147,6 +200,8 @@ public class SpeciesScanUI : MonoBehaviour
         _foundGroup.SetActive(false);
         _scanningGroup.SetActive(true);
         _cardGroup.SetActive(false);
+
+        SpawnModel();
     }
 
     void ShowCard()

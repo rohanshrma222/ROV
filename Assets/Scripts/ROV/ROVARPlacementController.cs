@@ -50,10 +50,10 @@ public class ROVARPlacementController : MonoBehaviour
     [SerializeField]
     Vector3[] waypointOffsets =
     {
-        new Vector3(1.0f, 0.2f, 0.8f),
-        new Vector3(-1.2f, 0.25f, 1.0f),
-        new Vector3(0.2f, 0.3f, 1.6f),
-        new Vector3(-0.6f, 0.35f, 2.1f),
+        new Vector3(2.5f, 0.3f, 2.0f),
+        new Vector3(-3.0f, 0.3f, 2.5f),
+        new Vector3(0.5f, 0.4f, 4.0f),
+        new Vector3(-1.5f, 0.4f, 5.0f),
     };
     [SerializeField] string[] waypointLabels = { "Station Alpha", "Station Bravo", "Station Charlie", "Station Delta" };
     [SerializeField] float waypointTriggerRadius = 0.15f;

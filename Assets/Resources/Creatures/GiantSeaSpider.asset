@@ -24,4 +24,4 @@ MonoBehaviour:
     extend down into them instead.
   modelPrefab: {fileID: 8128668236925612103, guid: 0e04e9c74c9573c49b3417841b18f657, type: 3}
   modelOffset: {x: 0, y: 0, z: 0}
-  modelScale: 1
+  modelScale: 0.12

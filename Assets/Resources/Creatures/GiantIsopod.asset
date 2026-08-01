@@ -23,4 +23,4 @@ MonoBehaviour:
     meals by slowing its metabolism almost to a stop.
   modelPrefab: {fileID: -6689036041284674117, guid: 2177ee0b3fdc3df42b834bca6ddcfc92, type: 3}
   modelOffset: {x: 0, y: 0, z: 0}
-  modelScale: 0.001
+  modelScale: 0.006
