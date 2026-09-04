@@ -19,11 +19,11 @@ using UnityEngine.UI;
 ///   3. Builds the ROV capsule with all components wired
 ///   4. Adds a child Spotlight and two cameras (1st/3rd person)
 ///   5. Spawns 5 glowing waypoints arranged in an arc on the seabed
-///   6. Creates TemperatureController, MissionController, ReportGenerator
+///   6. Creates TemperatureController, MissionController
 ///   7. Builds the full HUD canvas (depth, temp, pH, heading, biome, etc.)
 ///   8. Builds the Sonar radar panel
 ///   9. Builds the Mission HUD (waypoint counter + ON STATION overlay)
-///  10. Builds the AI Chat panel + Report screen
+///  10. Builds the Report screen
 ///  11. Builds the on-screen joystick canvas
 ///  12. Wires all cross-references between components
 ///  13. Saves the scene and marks it dirty
@@ -302,7 +302,6 @@ public static class ROVSceneBuilder
     {
         var go  = new GameObject("MissionController");
         var mc  = go.AddComponent<ROVMissionController>();
-        var rg  = go.AddComponent<MissionReportGenerator>();
 
         // Wire waypoints list
         var waypoints = new System.Collections.Generic.List<ROVWaypoint>();
@@ -312,9 +311,6 @@ public static class ROVSceneBuilder
             if (rwp != null) waypoints.Add(rwp);
         }
         SetPrivateField(mc, "waypoints", waypoints);
-
-        // Wire report generator
-        SetPrivateField(mc, "reportGenerator", rg);
 
         return go;
     }
@@ -504,44 +500,6 @@ public static class ROVSceneBuilder
     {
         var canvas = MakeCanvas("MissionChatCanvas");
 
-        // ── Chat Panel (bottom center — collapsed by default) ─────────────
-        var chatPanel = MakePanel(canvas.transform, "ChatPanel",
-            new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(0, 160),
-            new Vector2(600, 280));
-        ApplyPanelStyle(chatPanel);
-
-        var statusTmp = MakeLabel(chatPanel.transform, "StatusText", "NAVIGATOR  online",
-            new Vector2(0, -18), 11, AccentCyan);
-
-        var responseTmp = MakeLabel(chatPanel.transform, "ResponseText",
-            "NAVIGATOR online. Ask me anything about the mission.",
-            new Vector2(0, -80), 13, TextGreen);
-        responseTmp.GetComponent<RectTransform>().sizeDelta = new Vector2(560, 120);
-
-        // Input field
-        var inputGO = new GameObject("PromptInput", typeof(RectTransform));
-        inputGO.transform.SetParent(chatPanel.transform, false);
-        var inputRT = inputGO.GetComponent<RectTransform>();
-        inputRT.anchorMin = inputRT.anchorMax = new Vector2(0.5f, 0f);
-        inputRT.anchoredPosition = new Vector2(-60, -120);
-        inputRT.sizeDelta = new Vector2(430, 36);
-        var inputField = inputGO.AddComponent<TMP_InputField>();
-        // Background for input
-        var inputBg = inputGO.AddComponent<Image>();
-        inputBg.color = new Color(0.06f, 0.16f, 0.22f, 1f);
-        inputField.targetGraphic = inputBg;
-
-        // Ask button
-        var askBtn = MakeButton(chatPanel.transform, "AskButton", "ASK",
-            new Vector2(220, -120), new Vector2(90, 36), AccentCyan);
-
-        // MissionChatManager
-        var chatMgr = chatPanel.AddComponent<MissionChatManager>();
-        SetPrivateField(chatMgr, "statusText",   statusTmp);
-        SetPrivateField(chatMgr, "responseText", responseTmp);
-        SetPrivateField(chatMgr, "promptInput",  inputField);
-        SetPrivateField(chatMgr, "askButton",    askBtn);
-
         // ── Report Panel (hidden, activates on mission complete) ──────────
         var reportPanel = MakePanel(canvas.transform, "ReportPanel",
             new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero,
@@ -592,7 +550,6 @@ public static class ROVSceneBuilder
 
         // ReportScreenUI
         var mc  = missionCtrl.GetComponent<ROVMissionController>();
-        var rg  = missionCtrl.GetComponent<MissionReportGenerator>();
         var rui = reportPanel.AddComponent<ReportScreenUI>();
         SetPrivateField(rui, "reportText",            reportTmp);
         SetPrivateField(rui, "scrollRect",            scroll);
@@ -602,10 +559,6 @@ public static class ROVSceneBuilder
         SetPrivateField(rui, "closeButton",           closeBtn);
         SetPrivateField(rui, "reportPanel",           reportPanel);
         SetPrivateField(rui, "missionController",     mc);
-
-        // Wire report generator output label
-        SetPrivateField(rg, "reportOutputLabel", reportTmp);
-        SetPrivateField(rg, "chatManager", chatPanel.GetComponent<MissionChatManager>());
 
         return canvas;
     }

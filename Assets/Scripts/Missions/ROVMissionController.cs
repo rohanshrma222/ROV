@@ -1,12 +1,10 @@
 using System.Collections.Generic;
-using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Events;
 
 /// <summary>
 /// Core mission orchestrator. Place in scene and wire waypoints in the Inspector.
-/// Flow: StartMission() → ROV flies to each waypoint → CaptureDataPoint() auto-fires
-/// → all waypoints complete → MissionComplete() → GenerateReport().
+/// Flow: StartMission() → ROV flies to each waypoint → all waypoints complete → MissionComplete().
 /// </summary>
 public class ROVMissionController : MonoBehaviour
 {
@@ -16,24 +14,17 @@ public class ROVMissionController : MonoBehaviour
     [Tooltip("If true, waypoints must be reached in list order and out-of-order triggers are ignored. Disable for layouts (e.g. AR, where waypoints are scattered with no visible ordering cue) where the player can't tell which one is \"next\".")]
     [SerializeField] bool requireSequentialOrder = true;
 
-    [Header("Scan Settings")]
-    [Tooltip("Creature scan radius at each waypoint")]
-    [SerializeField] float creatureScanRadius = 15f;
-
     [Header("References")]
-    [SerializeField] MissionReportGenerator reportGenerator;
-    [SerializeField] MissionHUD             missionHUD;
+    [SerializeField] MissionHUD missionHUD;
 
     [Header("Events")]
     public UnityEvent<int, int>   OnWaypointReached;    // (current, total)
-    public UnityEvent<DataPoint>  OnDataPointCaptured;
     public UnityEvent<string>     OnMissionComplete;    // report text
 
     // ── State ───────────────────────────────────────────────────────────────
     int              _currentIndex;
     float            _missionStartTime;
     bool             _missionActive;
-    List<DataPoint>  _dataLog = new();
 
     // ── Public API ──────────────────────────────────────────────────────────
 
@@ -82,8 +73,6 @@ public class ROVMissionController : MonoBehaviour
 
     void Awake()
     {
-        if (reportGenerator == null)
-            reportGenerator = FindFirstObjectByType<MissionReportGenerator>();
         if (missionHUD == null)
             missionHUD = FindFirstObjectByType<MissionHUD>();
 
@@ -136,7 +125,6 @@ public class ROVMissionController : MonoBehaviour
         _currentIndex    = 0;
         _missionStartTime = Time.time;
         _missionActive   = true;
-        _dataLog.Clear();
 
         if (missionHUD != null)
             missionHUD.SetMissionState(0, waypoints.Count, -1f, false);
@@ -164,9 +152,6 @@ public class ROVMissionController : MonoBehaviour
 
         LastReachedWaypoint = wp;
 
-        var dp = CaptureDataPoint(wp.waypointLabel);
-        _dataLog.Add(dp);
-        OnDataPointCaptured?.Invoke(dp);
         OnWaypointReached?.Invoke(_currentIndex + 1, waypoints.Count);
 
         if (missionHUD != null)
@@ -177,44 +162,13 @@ public class ROVMissionController : MonoBehaviour
         _currentIndex++;
 
         if (_currentIndex >= waypoints.Count)
-            CompleteMission().Forget();
+            CompleteMission();
     }
 
-    DataPoint CaptureDataPoint(string label)
-    {
-        var player  = World.GetPlayer();
-        var env     = World.GetEnvironment();
-        var creatures = World.GetCreatures(creatureScanRadius);
-
-        string[] names = new string[creatures.Count];
-        for (int i = 0; i < creatures.Count; i++)
-            names[i] = creatures[i].name;
-
-        return new DataPoint
-        {
-            waypointName     = label,
-            position         = new Vector3(player.x, player.y, player.z),
-            depth            = player.depthMeters,
-            temperature      = env.waterTemperatureC,
-            pH               = env.pH,
-            visibility       = env.visibilityMeters,
-            biome            = env.biome,
-            lightLevel       = env.lightLevel,
-            creaturesNearby  = names,
-            timestamp        = ElapsedTime,
-        };
-    }
-
-    async UniTaskVoid CompleteMission()
+    void CompleteMission()
     {
         _missionActive = false;
-        Debug.Log("[ROVMissionController] All waypoints complete — generating report…");
-
-        string report = "Report generation unavailable.";
-        if (reportGenerator != null)
-            report = await reportGenerator.GenerateReport(_dataLog);
-
-        OnMissionComplete?.Invoke(report);
+        OnMissionComplete?.Invoke("");
         Debug.Log("[ROVMissionController] Mission complete.");
     }
 }

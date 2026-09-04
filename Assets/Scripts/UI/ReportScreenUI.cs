@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Report screen shown after mission completion.
-/// ROVMissionController.OnMissionComplete feeds the Gemini report text here.
+/// ROVMissionController.OnMissionComplete feeds the report text here.
 /// Includes a scrollable text area and a clipboard copy button.
 /// </summary>
 public class ReportScreenUI : MonoBehaviour

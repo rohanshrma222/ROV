@@ -14,6 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier:
   creatures:
   - {fileID: 11400000, guid: e31c35df01a5dcd0bb610737e94895f6, type: 2}
-  - {fileID: 11400000, guid: f07c5ef074dce845a85f2cc2353b2763, type: 2}
   - {fileID: 11400000, guid: 192e5f7e8615db7fbebe1668dec80280, type: 2}
   - {fileID: 11400000, guid: 57e52c00d92d241d09210ac82f583cc4, type: 2}
